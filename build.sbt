@@ -6,7 +6,7 @@ scalaVersion := "2.10.4"
 
 spName := "fabuzaid21/yggdrasil" 
 
-sparkVersion := "1.6.0" 
+sparkVersion := "2.1.0"
 
 sparkComponents ++= Seq("mllib", "sql")
 
