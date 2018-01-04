@@ -1,12 +1,11 @@
 package org.apache.spark.mllib.util
 
-import org.apache.spark.Logging
 import org.scalatest.{FunSuite, Outcome}
 
 /**
   * Created by fabuzaid21 on 6/7/16.
   */
-abstract class SparkFunSuite extends FunSuite with Logging {
+abstract class SparkFunSuite extends FunSuite {
   // scalastyle:on
 
   /**
@@ -21,10 +20,10 @@ abstract class SparkFunSuite extends FunSuite with Logging {
     val suiteName = this.getClass.getName
     val shortSuiteName = suiteName.replaceAll("org.apache.spark", "o.a.s")
     try {
-      logInfo(s"\n\n===== TEST OUTPUT FOR $shortSuiteName: '$testName' =====\n")
+      //logInfo(s"\n\n===== TEST OUTPUT FOR $shortSuiteName: '$testName' =====\n")
       test()
     } finally {
-      logInfo(s"\n\n===== FINISHED $shortSuiteName: '$testName' =====\n")
+      //logInfo(s"\n\n===== FINISHED $shortSuiteName: '$testName' =====\n")
     }
   }
 }

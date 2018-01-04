@@ -18,7 +18,7 @@
 package org.apache.spark.ml.tree.impl
 
 import org.apache.spark.ml.tree.impl.YggdrasilUtil._
-import org.apache.spark.mllib.linalg.{SparseVector, Vector, Vectors}
+import org.apache.spark.ml.linalg.{SparseVector, Vector, Vectors}
 import org.apache.spark.mllib.util.{MLlibTestSparkContext, SparkFunSuite}
 
 import scala.collection.mutable

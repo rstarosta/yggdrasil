@@ -17,25 +17,23 @@
 
 package org.apache.spark.ml.tree.impl
 
-import org.apache.spark.Logging
 import org.apache.spark.broadcast.Broadcast
 import org.apache.spark.ml.Predictor
 import org.apache.spark.ml.param.ParamMap
 import org.apache.spark.ml.tree._
 import org.apache.spark.ml.tree.impl.YggdrasilUtil._
-import org.apache.spark.ml.classification.{DecisionTreeClassifier, DecisionTreeClassificationModel}
-import org.apache.spark.ml.regression.{DecisionTreeRegressor, DecisionTreeRegressionModel}
+import org.apache.spark.ml.classification.{DecisionTreeClassificationModel, DecisionTreeClassifier}
+import org.apache.spark.ml.regression.{DecisionTreeRegressionModel, DecisionTreeRegressor}
 import org.apache.spark.ml.util.MetadataUtils
-import org.apache.spark.mllib.regression.LabeledPoint
+import org.apache.spark.ml.feature.LabeledPoint
 import org.apache.spark.mllib.tree.configuration.Strategy
-import org.apache.spark.mllib.tree.impl.DecisionTreeMetadata
 import org.apache.spark.mllib.tree.impurity._
-import org.apache.spark.mllib.linalg.Vector
+import org.apache.spark.ml.linalg.Vector
 import org.apache.spark.mllib.tree.configuration.{Algo => OldAlgo, Strategy => OldStrategy}
-import org.apache.spark.mllib.tree.model.{Predict, ImpurityStats}
+import org.apache.spark.mllib.tree.model.{ImpurityStats, Predict}
 import org.apache.spark.rdd.RDD
 import org.apache.spark.ml.util.Identifiable
-import org.apache.spark.sql.DataFrame
+import org.apache.spark.sql.Dataset
 import org.apache.spark.util.collection.{BitSet, SortDataFormat, Sorter}
 import org.roaringbitmap.RoaringBitmap
 
@@ -76,7 +74,13 @@ final class YggdrasilClassifier(override val uid: String)
     model.asInstanceOf[DecisionTreeClassificationModel]
   }
 
-  override protected def train(dataset: DataFrame): DecisionTreeClassificationModel = {
+  /** Create a Strategy instance to use with the old API. */
+  private[impl] def getOldStrategy(categoricalFeatures: Map[Int, Int]): OldStrategy = {
+    super.getOldStrategy(categoricalFeatures, numClasses = 0, OldAlgo.Classification, getOldImpurity,
+      subsamplingRate = 1.0)
+  }
+
+  override protected def train(dataset: Dataset[_]): DecisionTreeClassificationModel = {
     val categoricalFeatures: Map[Int, Int] =
       MetadataUtils.getCategoricalFeatures(dataset.schema($(featuresCol)))
     val oldDataset: RDD[LabeledPoint] = extractLabeledPoints(dataset)
@@ -85,11 +89,6 @@ final class YggdrasilClassifier(override val uid: String)
     model.asInstanceOf[DecisionTreeClassificationModel]
   }
 
-  /** Create a Strategy instance to use with the old API. */
-  private[impl] def getOldStrategy(categoricalFeatures: Map[Int, Int]): OldStrategy = {
-    super.getOldStrategy(categoricalFeatures, numClasses = 0, OldAlgo.Classification, getOldImpurity,
-      subsamplingRate = 1.0)
-  }
 }
 
 final class YggdrasilRegressor(override val uid: String)
@@ -129,19 +128,19 @@ final class YggdrasilRegressor(override val uid: String)
     model.asInstanceOf[DecisionTreeRegressionModel]
   }
 
-  override protected def train(dataset: DataFrame): DecisionTreeRegressionModel = {
+  /** Create a Strategy instance to use with the old API. */
+  private[impl] def getOldStrategy(categoricalFeatures: Map[Int, Int]): OldStrategy = {
+    super.getOldStrategy(categoricalFeatures, numClasses = 0, OldAlgo.Regression, getOldImpurity,
+      subsamplingRate = 1.0)
+  }
+
+  override protected def train(dataset: Dataset[_]): DecisionTreeRegressionModel = {
     val categoricalFeatures: Map[Int, Int] =
       MetadataUtils.getCategoricalFeatures(dataset.schema($(featuresCol)))
     val oldDataset: RDD[LabeledPoint] = extractLabeledPoints(dataset)
     val strategy = getOldStrategy(categoricalFeatures)
     val model = Yggdrasil.train(oldDataset, strategy, colStoreInput = None, parentUID = Some(uid))
     model.asInstanceOf[DecisionTreeRegressionModel]
-  }
-
-  /** Create a Strategy instance to use with the old API. */
-  private[impl] def getOldStrategy(categoricalFeatures: Map[Int, Int]): OldStrategy = {
-    super.getOldStrategy(categoricalFeatures, numClasses = 0, OldAlgo.Regression, getOldImpurity,
-      subsamplingRate = 1.0)
   }
 }
 
@@ -161,7 +160,7 @@ final class YggdrasilRegressor(override val uid: String)
   *
   * TODO: Update to use a sparse column store.
   */
-private[ml] object Yggdrasil extends Logging {
+private[ml] object Yggdrasil {
 
   private[impl] class YggdrasilMetadata(
                                          val numClasses: Int,
@@ -963,7 +962,7 @@ private[ml] object Yggdrasil extends Logging {
   }
 
   /**
-    * A wrapper that holds a primitive key – borrowed from [[org.apache.spark.ml.recommendation.ALS.KeyWrapper]]
+    * A wrapper that holds a primitive key – borrowed from org.apache.spark.ml.recommendation.ALS.KeyWrapper
     */
   private class KeyWrapper extends Ordered[KeyWrapper] {
 

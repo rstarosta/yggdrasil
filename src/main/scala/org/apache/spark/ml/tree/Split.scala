@@ -17,34 +17,34 @@
 
 package org.apache.spark.ml.tree
 
-import org.apache.spark.annotation.DeveloperApi
-import org.apache.spark.mllib.linalg.Vector
+import java.util.Objects
+
+import org.apache.spark.annotation.Since
+import org.apache.spark.ml.linalg.Vector
 import org.apache.spark.mllib.tree.configuration.{FeatureType => OldFeatureType}
 import org.apache.spark.mllib.tree.model.{Split => OldSplit}
 
 
 /**
- * :: DeveloperApi ::
- * Interface for a "Split," which specifies a test made at a decision tree node
- * to choose the left or right path.
- */
-@DeveloperApi
+  * Interface for a "Split," which specifies a test made at a decision tree node
+  * to choose the left or right path.
+  */
 sealed trait Split extends Serializable {
 
   /** Index of feature which this split tests */
   def featureIndex: Int
 
   /**
-   * Return true (split to left) or false (split to right).
-   * @param features  Vector of features (original values, not binned).
-   */
+    * Return true (split to left) or false (split to right).
+    * @param features  Vector of features (original values, not binned).
+    */
   private[ml] def shouldGoLeft(features: Vector): Boolean
 
   /**
-   * Return true (split to left) or false (split to right).
-   * @param binnedFeature Binned feature value.
-   * @param splits All splits for the given feature.
-   */
+    * Return true (split to left) or false (split to right).
+    * @param binnedFeature Binned feature value.
+    * @param splits All splits for the given feature.
+    */
   private[tree] def shouldGoLeft(binnedFeature: Int, splits: Array[Split]): Boolean
 
   /**
@@ -71,26 +71,24 @@ private[tree] object Split {
 }
 
 /**
- * :: DeveloperApi ::
- * Split which tests a categorical feature.
- * @param featureIndex  Index of the feature to test
- * @param _leftCategories  If the feature value is in this set of categories, then the split goes
- *                         left. Otherwise, it goes right.
- * @param numCategories  Number of categories for this feature.
- */
-@DeveloperApi
-final class CategoricalSplit private[ml] (
-    override val featureIndex: Int,
-    _leftCategories: Array[Double],
-    private val numCategories: Int)
+  * Split which tests a categorical feature.
+  * @param featureIndex  Index of the feature to test
+  * @param _leftCategories  If the feature value is in this set of categories, then the split goes
+  *                         left. Otherwise, it goes right.
+  * @param numCategories  Number of categories for this feature.
+  */
+class CategoricalSplit private[ml] (
+                                     override val featureIndex: Int,
+                                     _leftCategories: Array[Double],
+                                     @Since("2.0.0") val numCategories: Int)
   extends Split {
 
   require(_leftCategories.forall(cat => 0 <= cat && cat < numCategories), "Invalid leftCategories" +
     s" (should be in range [0, $numCategories)): ${_leftCategories.mkString(",")}")
 
   /**
-   * If true, then "categories" is the set of categories for splitting to the left, and vice versa.
-   */
+    * If true, then "categories" is the set of categories for splitting to the left, and vice versa.
+    */
   private val isLeft: Boolean = _leftCategories.length <= numCategories / 2
 
   /** Set of categories determining the splitting rule, along with [[isLeft]]. */
@@ -126,12 +124,15 @@ final class CategoricalSplit private[ml] (
     }
   }
 
-  override def equals(o: Any): Boolean = {
-    o match {
-      case other: CategoricalSplit => featureIndex == other.featureIndex &&
-        isLeft == other.isLeft && categories == other.categories
-      case _ => false
-    }
+  override def hashCode(): Int = {
+    val state = Seq(featureIndex, isLeft, categories)
+    state.map(Objects.hashCode).foldLeft(0)((a, b) => 31 * a + b)
+  }
+
+  override def equals(o: Any): Boolean = o match {
+    case other: CategoricalSplit => featureIndex == other.featureIndex &&
+      isLeft == other.isLeft && categories == other.categories
+    case _ => false
   }
 
   override private[tree] def toOld: OldSplit = {
@@ -162,14 +163,12 @@ final class CategoricalSplit private[ml] (
 }
 
 /**
- * :: DeveloperApi ::
- * Split which tests a continuous feature.
- * @param featureIndex  Index of the feature to test
- * @param threshold  If the feature value is <= this threshold, then the split goes left.
- *                    Otherwise, it goes right.
- */
-@DeveloperApi
-final class ContinuousSplit private[ml] (override val featureIndex: Int, val threshold: Double)
+  * Split which tests a continuous feature.
+  * @param featureIndex  Index of the feature to test
+  * @param threshold  If the feature value is less than or equal to this threshold, then the
+  *                   split goes left. Otherwise, it goes right.
+  */
+class ContinuousSplit private[ml] (override val featureIndex: Int, val threshold: Double)
   extends Split {
 
   override private[ml] def shouldGoLeft(features: Vector): Boolean = {
@@ -186,10 +185,6 @@ final class ContinuousSplit private[ml] (override val featureIndex: Int, val thr
     }
   }
 
-  override private[tree] def shouldGoLeft(feature: Double): Boolean = {
-    feature <= threshold
-  }
-
   override def equals(o: Any): Boolean = {
     o match {
       case other: ContinuousSplit =>
@@ -199,7 +194,17 @@ final class ContinuousSplit private[ml] (override val featureIndex: Int, val thr
     }
   }
 
+  override def hashCode(): Int = {
+    val state = Seq(featureIndex, threshold)
+    state.map(Objects.hashCode).foldLeft(0)((a, b) => 31 * a + b)
+  }
+
   override private[tree] def toOld: OldSplit = {
     OldSplit(featureIndex, threshold, OldFeatureType.Continuous, List.empty[Double])
   }
+
+  override private[tree] def shouldGoLeft(feature: Double): Boolean = {
+    feature <= threshold
+  }
+
 }

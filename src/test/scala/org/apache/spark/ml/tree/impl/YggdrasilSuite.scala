@@ -19,8 +19,8 @@ package org.apache.spark.ml.tree.impl
 
 import org.apache.spark.ml.tree._
 import org.apache.spark.ml.tree.impl.Yggdrasil.{FeatureVector, PartitionInfo, YggdrasilMetadata}
-import org.apache.spark.mllib.linalg.Vectors
-import org.apache.spark.mllib.regression.LabeledPoint
+import org.apache.spark.ml.linalg.Vectors
+import org.apache.spark.ml.feature.LabeledPoint
 import org.apache.spark.mllib.tree.impurity._
 import org.apache.spark.mllib.tree.model.ImpurityStats
 import org.apache.spark.mllib.util.{SparkFunSuite, MLlibTestSparkContext}
@@ -475,8 +475,8 @@ class YggdrasilSuite extends SparkFunSuite with MLlibTestSparkContext  {
         a.valid == b.valid
     }
     // old periphery: 2 nodes
-    val left = LearningNode.emptyNode(id = 1)
-    val right = LearningNode.emptyNode(id = 2)
+    val left = LearningNode.emptyNode(1)
+    val right = LearningNode.emptyNode(2)
     val oldPeriphery: Array[LearningNode] = Array(left, right)
     // bestSplitsAndGains: Do not split left, but split right node.
     val lCalc = new EntropyCalculator(Array(8.0, 1.0))

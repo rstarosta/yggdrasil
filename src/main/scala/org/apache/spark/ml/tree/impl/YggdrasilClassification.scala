@@ -3,7 +3,7 @@ package org.apache.spark.ml.tree.impl
 import org.apache.spark.broadcast.Broadcast
 import org.apache.spark.ml.tree._
 import org.apache.spark.ml.tree.impl.Yggdrasil.{FeatureVector, PartitionInfo, YggdrasilMetadata}
-import org.apache.spark.mllib.regression.LabeledPoint
+import org.apache.spark.ml.feature.LabeledPoint
 import org.apache.spark.mllib.tree.model.ImpurityStats
 import org.apache.spark.rdd.RDD
 import org.apache.spark.serializer.KryoSerializer
